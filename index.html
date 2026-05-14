@@ -18,9 +18,8 @@
         </div>
 
         <nav class="toolbar" data-i18n-aria-label="aria.mainTools" aria-label="Main tools">
-          <a class="x-link" href="https://x.com/KanaWorks_AI" target="_blank" rel="noreferrer">
+          <a class="x-link" href="https://x.com/KanaWorks_AI" target="_blank" rel="noreferrer" data-i18n-title="promo.xTitle" title="KanaWorks_AI on X" data-i18n-aria-label="promo.xTitle" aria-label="KanaWorks_AI on X">
             <span aria-hidden="true">X</span>
-            <span data-i18n="promo.followX">Follow @KanaWorks_AI</span>
           </a>
 
           <button id="helpButton" class="icon-button" type="button" data-i18n-title="help.title" title="Help" data-i18n-aria-label="help.title" aria-label="Help" aria-haspopup="dialog">
@@ -38,9 +37,8 @@
             </label>
           </div>
 
-          <label class="tool-button" for="fileInput" data-upload-trigger data-i18n-title="action.openImage" title="Open image">
+          <label class="tool-button icon-only" for="fileInput" data-upload-trigger data-i18n-title="action.openImage" title="Open image" data-i18n-aria-label="action.openImage" aria-label="Open image">
             <span aria-hidden="true">↥</span>
-            <span data-i18n="step.uploadButton">1 Upload</span>
           </label>
           <input id="fileInput" type="file" accept="image/*" />
 
@@ -54,11 +52,6 @@
               <span data-i18n="granularity.medium">Medium</span>
             </label>
           </div>
-
-          <button id="manualButton" class="tool-button" type="button" data-i18n-title="action.manual" title="Manual" disabled>
-            <span aria-hidden="true">✦</span>
-            <span data-i18n="action.manual">Manual</span>
-          </button>
 
           <button id="scanButton" class="tool-button" type="button" data-i18n-title="step.scan" title="Scan plan" disabled>
             <span aria-hidden="true">⌘</span>
@@ -218,7 +211,7 @@
         </div>
         <ol>
           <li data-i18n="help.step1">Upload an image.</li>
-          <li data-i18n="help.step2">Choose low or medium granularity, scan, or start manually.</li>
+          <li data-i18n="help.step2">Choose low or medium granularity, then scan the image.</li>
           <li data-i18n="help.step3">Adjust layer boxes, names, locks, and shapes if needed.</li>
           <li data-i18n="help.step4">Preview, extract, then export the layered PSD.</li>
         </ol>

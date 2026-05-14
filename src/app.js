@@ -32,11 +32,11 @@ const DEFAULT_MESSAGES = {
   "aria.language": "Language",
   "aria.granularity": "Granularity",
   "aria.shape": "Layer shape",
-  "promo.followX": "Follow @KanaWorks_AI",
+  "promo.xTitle": "KanaWorks_AI on X",
   "help.title": "How to use",
   "help.close": "Close",
   "help.step1": "Upload an image.",
-  "help.step2": "Choose low or medium granularity, scan, or start manually.",
+  "help.step2": "Choose low or medium granularity, then scan the image.",
   "help.step3": "Adjust layer boxes, names, locks, and shapes if needed.",
   "help.step4": "Preview, extract, then export the layered PSD.",
   "step.upload": "Upload",
@@ -45,7 +45,6 @@ const DEFAULT_MESSAGES = {
   "step.preview": "Preview",
   "step.split": "Extract",
   "step.export": "Export PSD",
-  "step.uploadButton": "1 Upload",
   "step.scanButton": "2 Scan",
   "step.adjustButton": "3 Adjust",
   "step.previewButton": "4 Preview",
@@ -67,7 +66,6 @@ const DEFAULT_MESSAGES = {
   "status.scanContours": "Finding image and icon blocks",
   "status.scanFallback": "Hybrid scan unavailable. Using local visual scan.",
   "status.scanFailed": "Layer scan failed",
-  "status.manualReady": "Manual mode ready. Draw layer areas on the canvas.",
   "status.chooseGranularity": "{granularity} selected. Scan again to rebuild the plan.",
   "status.uploadFirst": "Upload an image first",
   "status.scanning": "Scanning with {granularity} granularity",
@@ -94,7 +92,6 @@ const DEFAULT_MESSAGES = {
   "panel.layerPlan": "Layer plan",
   "panel.properties": "Properties",
   "panel.emptyLoaded": "Scan a layer plan to show layers here.",
-  "panel.emptyManual": "Draw a manual layer area on the canvas to begin.",
   "panel.emptyUpload": "Upload an image to start planning.",
   "field.name": "Name",
   "field.shape": "Shape",
@@ -103,7 +100,6 @@ const DEFAULT_MESSAGES = {
   "field.includeReference": "Include hidden original reference layer",
   "action.openImage": "Open image",
   "action.lockSelected": "Lock selected area",
-  "action.manual": "Manual",
   "action.addLayer": "Add manual extraction area",
   "action.moveUp": "Move up",
   "action.moveDown": "Move down",
@@ -127,7 +123,6 @@ const DEFAULT_MESSAGES = {
 const refs = {
   fileInput: document.getElementById("fileInput"),
   scanButton: document.getElementById("scanButton"),
-  manualButton: document.getElementById("manualButton"),
   adjustButton: document.getElementById("adjustButton"),
   previewButton: document.getElementById("previewButton"),
   splitButton: document.getElementById("splitButton"),
@@ -230,7 +225,6 @@ function bindEvents() {
     });
   });
   refs.scanButton.addEventListener("click", scanAndPlanLayers);
-  refs.manualButton.addEventListener("click", enterManualMode);
   refs.helpButton.addEventListener("click", () => refs.helpDialog.showModal());
   refs.granularityInputs.forEach((input) => {
     input.addEventListener("change", () => {
@@ -580,24 +574,6 @@ async function scanAndPlanLayers() {
   }
 }
 
-function enterManualMode() {
-  if (state.scanning) {
-    return;
-  }
-  if (!state.loaded) {
-    setStatus(t("status.uploadFirst"));
-    return;
-  }
-  nextLayerId = 1;
-  state.layers = [];
-  state.selectedId = null;
-  state.workflowStep = "adjust";
-  state.mode = "draw";
-  invalidateSplit(false);
-  setStatus(t("status.manualReady"));
-  updateAll();
-}
-
 function beginScanProgress() {
   window.clearInterval(state.scanProgressTimer);
   state.scanProgressValue = 0;
@@ -848,7 +824,7 @@ function renderLayers() {
   if (state.layers.length === 0) {
     const empty = document.createElement("div");
     empty.className = "layer-empty";
-    empty.textContent = state.workflowStep === "adjust" ? t("panel.emptyManual") : state.loaded ? t("panel.emptyLoaded") : t("panel.emptyUpload");
+    empty.textContent = state.loaded ? t("panel.emptyLoaded") : t("panel.emptyUpload");
     refs.layerList.append(empty);
     return;
   }
@@ -1341,7 +1317,6 @@ function updateWorkflowUi() {
   });
 
   refs.scanButton.disabled = !state.loaded || state.scanning;
-  refs.manualButton.disabled = !state.loaded || state.scanning;
   refs.adjustButton.disabled = state.scanning || !state.loaded || state.layers.length === 0;
   refs.previewButton.disabled = state.scanning || !state.loaded || state.layers.length === 0;
   refs.splitButton.disabled = state.scanning || !state.loaded || state.layers.length === 0 || !state.previewReady;
