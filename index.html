@@ -50,14 +50,15 @@
               <span data-i18n="granularity.low">Low</span>
             </label>
             <label>
-              <input type="radio" name="granularity" value="medium" />
+              <input type="radio" name="granularity" value="medium" checked />
               <span data-i18n="granularity.medium">Medium</span>
             </label>
-            <label>
-              <input type="radio" name="granularity" value="high" checked />
-              <span data-i18n="granularity.high">High</span>
-            </label>
           </div>
+
+          <button id="manualButton" class="tool-button" type="button" data-i18n-title="action.manual" title="Manual" disabled>
+            <span aria-hidden="true">✦</span>
+            <span data-i18n="action.manual">Manual</span>
+          </button>
 
           <button id="scanButton" class="tool-button" type="button" data-i18n-title="step.scan" title="Scan plan" disabled>
             <span aria-hidden="true">⌘</span>
@@ -103,7 +104,13 @@
         <section class="stage-shell" data-i18n-aria-label="aria.canvas" aria-label="Canvas">
           <div class="stage-toolbar">
             <span id="modeLabel">Upload / Select</span>
-            <span id="statusText" data-i18n="status.uploadStep">Step 1: upload an image</span>
+            <div class="stage-status">
+              <span id="statusText" data-i18n="status.uploadStep">Step 1: upload an image</span>
+              <div id="scanProgress" class="scan-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" hidden>
+                <div id="scanProgressBar" class="scan-progress-bar"></div>
+                <span id="scanProgressLabel">0%</span>
+              </div>
+            </div>
           </div>
           <div id="canvasScroller" class="canvas-scroller">
             <canvas id="stageCanvas"></canvas>
@@ -173,9 +180,9 @@
             <span data-i18n="field.includeLayer">Extract / export this layer</span>
           </label>
 
-          <button id="lockSelectedButton" class="wide-button" type="button" disabled data-i18n-title="action.lockSelected" title="Lock selected area">
-            <span aria-hidden="true">□</span>
-            <span data-i18n="action.lockSelected">Lock selected area</span>
+          <button id="lockSelectedButton" class="wide-button icon-wide-button" type="button" disabled data-i18n-title="action.lockSelected" title="Lock selected area">
+            <span class="lock-icon" aria-hidden="true"></span>
+            <span class="sr-only" data-i18n="action.lockSelected">Lock selected area</span>
           </button>
 
           <label class="check-row">
@@ -211,7 +218,7 @@
         </div>
         <ol>
           <li data-i18n="help.step1">Upload an image.</li>
-          <li data-i18n="help.step2">Choose low, medium, or high granularity and scan the layer plan.</li>
+          <li data-i18n="help.step2">Choose low or medium granularity, scan, or start manually.</li>
           <li data-i18n="help.step3">Adjust layer boxes, names, locks, and shapes if needed.</li>
           <li data-i18n="help.step4">Preview, extract, then export the layered PSD.</li>
         </ol>

@@ -1,7 +1,7 @@
 import { encodePsd } from "./psd-writer.js";
 import { detectGenericLayers } from "./layer-detector.js";
 
-const COLORS = ["#167a63", "#d08b2c", "#3d6fb6", "#a34d78", "#6f8b2e", "#6e59a5"];
+const COLORS = ["#2678ff", "#26b8ff", "#8b5cf6", "#f5b31d", "#14c6a4", "#ef5da8"];
 const STEP_ORDER = ["upload", "scan", "adjust", "preview", "split", "export"];
 const STEP_LABELS = {
   upload: "step.upload",
@@ -14,7 +14,6 @@ const STEP_LABELS = {
 const GRANULARITY_LABELS = {
   low: "granularity.low",
   medium: "granularity.medium",
-  high: "granularity.high",
 };
 const SHAPE_LABELS = {
   rect: "shape.rect",
@@ -37,7 +36,7 @@ const DEFAULT_MESSAGES = {
   "help.title": "How to use",
   "help.close": "Close",
   "help.step1": "Upload an image.",
-  "help.step2": "Choose low, medium, or high granularity and scan the layer plan.",
+  "help.step2": "Choose low or medium granularity, scan, or start manually.",
   "help.step3": "Adjust layer boxes, names, locks, and shapes if needed.",
   "help.step4": "Preview, extract, then export the layered PSD.",
   "step.upload": "Upload",
@@ -54,7 +53,6 @@ const DEFAULT_MESSAGES = {
   "step.exportButton": "6 Export PSD",
   "granularity.low": "Low",
   "granularity.medium": "Medium",
-  "granularity.high": "High",
   "shape.rect": "Rect",
   "shape.rounded": "Rounded",
   "shape.circle": "Circle",
@@ -69,6 +67,7 @@ const DEFAULT_MESSAGES = {
   "status.scanContours": "Finding image and icon blocks",
   "status.scanFallback": "Hybrid scan unavailable. Using local visual scan.",
   "status.scanFailed": "Layer scan failed",
+  "status.manualReady": "Manual mode ready. Draw layer areas on the canvas.",
   "status.chooseGranularity": "{granularity} selected. Scan again to rebuild the plan.",
   "status.uploadFirst": "Upload an image first",
   "status.scanning": "Scanning with {granularity} granularity",
@@ -95,6 +94,7 @@ const DEFAULT_MESSAGES = {
   "panel.layerPlan": "Layer plan",
   "panel.properties": "Properties",
   "panel.emptyLoaded": "Scan a layer plan to show layers here.",
+  "panel.emptyManual": "Draw a manual layer area on the canvas to begin.",
   "panel.emptyUpload": "Upload an image to start planning.",
   "field.name": "Name",
   "field.shape": "Shape",
@@ -103,6 +103,7 @@ const DEFAULT_MESSAGES = {
   "field.includeReference": "Include hidden original reference layer",
   "action.openImage": "Open image",
   "action.lockSelected": "Lock selected area",
+  "action.manual": "Manual",
   "action.addLayer": "Add manual extraction area",
   "action.moveUp": "Move up",
   "action.moveDown": "Move down",
@@ -126,6 +127,7 @@ const DEFAULT_MESSAGES = {
 const refs = {
   fileInput: document.getElementById("fileInput"),
   scanButton: document.getElementById("scanButton"),
+  manualButton: document.getElementById("manualButton"),
   adjustButton: document.getElementById("adjustButton"),
   previewButton: document.getElementById("previewButton"),
   splitButton: document.getElementById("splitButton"),
@@ -140,6 +142,9 @@ const refs = {
   imageMeta: document.getElementById("imageMeta"),
   modeLabel: document.getElementById("modeLabel"),
   statusText: document.getElementById("statusText"),
+  scanProgress: document.getElementById("scanProgress"),
+  scanProgressBar: document.getElementById("scanProgressBar"),
+  scanProgressLabel: document.getElementById("scanProgressLabel"),
   layerName: document.getElementById("layerName"),
   layerX: document.getElementById("layerX"),
   layerY: document.getElementById("layerY"),
@@ -173,12 +178,14 @@ const state = {
   drag: null,
   workflowStep: "upload",
   language: DEFAULT_LOCALE,
-  granularity: "high",
+  granularity: "medium",
   drawShape: "rect",
   previewReady: false,
   splitReady: false,
   splitPayload: null,
   scanning: false,
+  scanProgressValue: 0,
+  scanProgressTimer: null,
 };
 
 let nextLayerId = 1;
@@ -223,6 +230,7 @@ function bindEvents() {
     });
   });
   refs.scanButton.addEventListener("click", scanAndPlanLayers);
+  refs.manualButton.addEventListener("click", enterManualMode);
   refs.helpButton.addEventListener("click", () => refs.helpDialog.showModal());
   refs.granularityInputs.forEach((input) => {
     input.addEventListener("change", () => {
@@ -297,32 +305,42 @@ function bindEvents() {
 }
 
 function bindUploadDropZone() {
+  const dropTargets = [refs.uploadDropZone, refs.uploadEmptyState, refs.canvasScroller].filter(Boolean);
   ["dragenter", "dragover"].forEach((eventName) => {
-    refs.uploadDropZone.addEventListener(eventName, (event) => {
-      if (!hasImageDrag(event)) {
-        return;
-      }
-      event.preventDefault();
-      event.dataTransfer.dropEffect = "copy";
-      refs.uploadEmptyState.classList.add("drag-over");
+    dropTargets.forEach((target) => {
+      target.addEventListener(eventName, (event) => {
+        if (!hasImageDrag(event)) {
+          return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        event.dataTransfer.dropEffect = "copy";
+        refs.uploadEmptyState.classList.add("drag-over");
+        refs.canvasScroller.classList.add("drag-over");
+      });
     });
   });
 
-  refs.uploadDropZone.addEventListener("dragleave", (event) => {
-    if (!refs.uploadDropZone.contains(event.relatedTarget)) {
+  refs.canvasScroller.addEventListener("dragleave", (event) => {
+    if (!refs.canvasScroller.contains(event.relatedTarget)) {
       refs.uploadEmptyState.classList.remove("drag-over");
+      refs.canvasScroller.classList.remove("drag-over");
     }
   });
 
-  refs.uploadDropZone.addEventListener("drop", async (event) => {
-    event.preventDefault();
-    refs.uploadEmptyState.classList.remove("drag-over");
-    const file = getFirstImageFile(event.dataTransfer?.files);
-    if (!file) {
-      setStatus(t("status.dropImageOnly"));
-      return;
-    }
-    await loadFile(file);
+  dropTargets.forEach((target) => {
+    target.addEventListener("drop", async (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      refs.uploadEmptyState.classList.remove("drag-over");
+      refs.canvasScroller.classList.remove("drag-over");
+      const file = getFirstImageFile(event.dataTransfer?.files);
+      if (!file) {
+        setStatus(t("status.dropImageOnly"));
+        return;
+      }
+      await loadFile(file);
+    });
   });
 
   window.addEventListener("dragover", (event) => {
@@ -335,6 +353,7 @@ function bindUploadDropZone() {
       event.preventDefault();
     }
     refs.uploadEmptyState.classList.remove("drag-over");
+    refs.canvasScroller.classList.remove("drag-over");
   });
 }
 
@@ -392,7 +411,7 @@ function syncLanguageInputs() {
 }
 
 function granularityLabel(value) {
-  return t(GRANULARITY_LABELS[value] ?? GRANULARITY_LABELS.high);
+  return t(GRANULARITY_LABELS[value] ?? GRANULARITY_LABELS.medium);
 }
 
 function shapeLabel(value) {
@@ -414,6 +433,7 @@ function getInitialImage() {
 async function handleFileChange(event) {
   const file = getFirstImageFile(event.target.files);
   if (!file) {
+    refs.fileInput.value = "";
     return;
   }
   await loadFile(file);
@@ -443,6 +463,8 @@ function hasImageDrag(event) {
 }
 
 function showEmptyProject() {
+  finishScanProgress(false);
+  state.scanning = false;
   state.imageName = "";
   state.loaded = false;
   state.layers = [];
@@ -460,6 +482,8 @@ function showEmptyProject() {
 }
 
 function loadImage(src, name) {
+  finishScanProgress(false);
+  state.scanning = false;
   setStatus(t("status.imageLoading"));
   return new Promise((resolve, reject) => {
     const image = new Image();
@@ -518,6 +542,7 @@ async function scanAndPlanLayers() {
   const label = granularityLabel(state.granularity);
   state.scanning = true;
   state.workflowStep = "scan";
+  beginScanProgress();
   setStatus(t("status.scanning", { granularity: label }));
   updateWorkflowUi();
 
@@ -530,18 +555,85 @@ async function scanAndPlanLayers() {
         ocr: "status.scanOcr",
         prepare: "status.scanPreparing",
       }[stage];
+      const progressValue = {
+        contours: 72,
+        fallback: 84,
+        ocr: 42,
+        prepare: 18,
+      }[stage];
+      if (progressValue) {
+        setScanProgress(progressValue);
+      }
       if (statusKey) {
         setStatus(t(statusKey));
       }
     });
+    finishScanProgress(true);
     setStatus(t("status.scanDone", { count, granularity: label }));
   } catch (error) {
     console.error(error);
+    finishScanProgress(false);
     setStatus(t("status.scanFailed"));
   } finally {
     state.scanning = false;
     updateAll();
   }
+}
+
+function enterManualMode() {
+  if (state.scanning) {
+    return;
+  }
+  if (!state.loaded) {
+    setStatus(t("status.uploadFirst"));
+    return;
+  }
+  nextLayerId = 1;
+  state.layers = [];
+  state.selectedId = null;
+  state.workflowStep = "adjust";
+  state.mode = "draw";
+  invalidateSplit(false);
+  setStatus(t("status.manualReady"));
+  updateAll();
+}
+
+function beginScanProgress() {
+  window.clearInterval(state.scanProgressTimer);
+  state.scanProgressValue = 0;
+  setScanProgress(6);
+  refs.scanProgress.hidden = false;
+  state.scanProgressTimer = window.setInterval(() => {
+    if (!state.scanning) {
+      return;
+    }
+    const nextValue = Math.min(92, state.scanProgressValue + (state.scanProgressValue < 60 ? 2 : 1));
+    setScanProgress(nextValue);
+  }, 900);
+}
+
+function setScanProgress(value) {
+  const clamped = clamp(Math.round(value), 0, 100);
+  state.scanProgressValue = Math.max(state.scanProgressValue, clamped);
+  refs.scanProgress.hidden = false;
+  refs.scanProgressBar.style.width = `${state.scanProgressValue}%`;
+  refs.scanProgressLabel.textContent = `${state.scanProgressValue}%`;
+  refs.scanProgress.setAttribute("aria-valuenow", String(state.scanProgressValue));
+}
+
+function finishScanProgress(success) {
+  window.clearInterval(state.scanProgressTimer);
+  state.scanProgressTimer = null;
+  if (success) {
+    setScanProgress(100);
+    window.setTimeout(() => {
+      if (!state.scanning) {
+        refs.scanProgress.hidden = true;
+      }
+    }, 650);
+    return;
+  }
+  refs.scanProgress.hidden = true;
 }
 
 function enterAdjustStep() {
@@ -738,8 +830,8 @@ function drawLayerOutline(layer, selected) {
 
 function drawDraftShape(rect, shape) {
   ctx.save();
-  ctx.fillStyle = "rgba(22, 122, 99, 0.14)";
-  ctx.strokeStyle = "#167a63";
+  ctx.fillStyle = "rgba(38, 120, 255, 0.14)";
+  ctx.strokeStyle = "#2678ff";
   ctx.lineWidth = scaledLineWidth(3);
   ctx.setLineDash([scaledLineWidth(12), scaledLineWidth(8)]);
   traceShapePath(ctx, rect, shape);
@@ -756,7 +848,7 @@ function renderLayers() {
   if (state.layers.length === 0) {
     const empty = document.createElement("div");
     empty.className = "layer-empty";
-    empty.textContent = state.loaded ? t("panel.emptyLoaded") : t("panel.emptyUpload");
+    empty.textContent = state.workflowStep === "adjust" ? t("panel.emptyManual") : state.loaded ? t("panel.emptyLoaded") : t("panel.emptyUpload");
     refs.layerList.append(empty);
     return;
   }
@@ -781,7 +873,8 @@ function renderLayers() {
     lockButton.type = "button";
     lockButton.disabled = state.workflowStep !== "adjust";
     lockButton.title = layer.locked ? t("action.unlock") : t("action.lock");
-    lockButton.textContent = layer.locked ? t("action.lock") : t("action.open");
+    lockButton.setAttribute("aria-label", layer.locked ? t("action.unlock") : t("action.lock"));
+    lockButton.append(createLockIcon(layer.locked));
     lockButton.addEventListener("click", () => setLayerLocked(layer.id, !layer.locked));
 
     const button = document.createElement("button");
@@ -836,6 +929,18 @@ function drawThumbnail(canvas, layer) {
   thumbCtx.clip();
   thumbCtx.drawImage(sourceCanvas, layer.x, layer.y, layer.width, layer.height, x, y, width, height);
   thumbCtx.restore();
+}
+
+function createLockIcon(locked) {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("width", "16");
+  svg.setAttribute("height", "16");
+  svg.setAttribute("aria-hidden", "true");
+  svg.innerHTML = locked
+    ? '<path d="M7 10V8a5 5 0 0 1 10 0v2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><rect x="5" y="10" width="14" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 14v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'
+    : '<path d="M8 10V7.8a4.2 4.2 0 0 1 7.4-2.7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><rect x="5" y="10" width="14" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 14v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>';
+  return svg;
 }
 
 function renderInspector() {
@@ -1236,6 +1341,7 @@ function updateWorkflowUi() {
   });
 
   refs.scanButton.disabled = !state.loaded || state.scanning;
+  refs.manualButton.disabled = !state.loaded || state.scanning;
   refs.adjustButton.disabled = state.scanning || !state.loaded || state.layers.length === 0;
   refs.previewButton.disabled = state.scanning || !state.loaded || state.layers.length === 0;
   refs.splitButton.disabled = state.scanning || !state.loaded || state.layers.length === 0 || !state.previewReady;
