@@ -32,7 +32,6 @@ const DEFAULT_MESSAGES = {
   "aria.language": "Language",
   "aria.granularity": "Granularity",
   "aria.shape": "Layer shape",
-  "promo.xTitle": "KanaWorks_AI on X",
   "help.title": "How to use",
   "help.close": "Close",
   "help.step1": "Upload an image.",
