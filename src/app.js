@@ -63,6 +63,7 @@ const DEFAULT_MESSAGES = {
   "status.imageLoading": "Loading image",
   "status.imageLoaded": "Uploaded {name}. Next, scan the layer plan.",
   "status.imageFailed": "Image failed to load",
+  "status.dropImageOnly": "Drop an image file to upload.",
   "status.chooseGranularity": "{granularity} selected. Scan again to rebuild the plan.",
   "status.uploadFirst": "Upload an image first",
   "status.scanning": "Scanning with {granularity} granularity",
@@ -84,8 +85,8 @@ const DEFAULT_MESSAGES = {
   "status.exportDone": "Exported {count} PSD layers",
   "status.exportFailed": "PSD export failed",
   "status.modified": "Layer plan changed. Preview and extract again.",
-  "upload.emptyTitle": "Upload an image to start",
-  "upload.emptyBody": "Supports 16:9, 9:16, 3:2, 2:3, 1:1, and adaptive sizes.",
+  "upload.emptyTitle": "Drop or upload an image",
+  "upload.emptyBody": "Drag an image here, or click to choose one. Supports common aspect ratios and adaptive sizes.",
   "panel.layerPlan": "Layer plan",
   "panel.properties": "Properties",
   "panel.emptyLoaded": "Scan a layer plan to show layers here.",
@@ -128,6 +129,7 @@ const refs = {
   stageCanvas: document.getElementById("stageCanvas"),
   canvasScroller: document.getElementById("canvasScroller"),
   uploadEmptyState: document.getElementById("uploadEmptyState"),
+  uploadDropZone: document.getElementById("uploadDropZone"),
   layerList: document.getElementById("layerList"),
   layerCount: document.getElementById("layerCount"),
   imageMeta: document.getElementById("imageMeta"),
@@ -194,6 +196,7 @@ async function boot() {
 
 function bindEvents() {
   refs.fileInput.addEventListener("change", handleFileChange);
+  bindUploadDropZone();
   document.querySelectorAll("[data-upload-trigger]").forEach((trigger) => {
     trigger.addEventListener("click", (event) => {
       event.preventDefault();
@@ -287,6 +290,48 @@ function bindEvents() {
   window.addEventListener("resize", drawStage);
 }
 
+function bindUploadDropZone() {
+  ["dragenter", "dragover"].forEach((eventName) => {
+    refs.uploadDropZone.addEventListener(eventName, (event) => {
+      if (!hasImageDrag(event)) {
+        return;
+      }
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "copy";
+      refs.uploadEmptyState.classList.add("drag-over");
+    });
+  });
+
+  refs.uploadDropZone.addEventListener("dragleave", (event) => {
+    if (!refs.uploadDropZone.contains(event.relatedTarget)) {
+      refs.uploadEmptyState.classList.remove("drag-over");
+    }
+  });
+
+  refs.uploadDropZone.addEventListener("drop", async (event) => {
+    event.preventDefault();
+    refs.uploadEmptyState.classList.remove("drag-over");
+    const file = getFirstImageFile(event.dataTransfer?.files);
+    if (!file) {
+      setStatus(t("status.dropImageOnly"));
+      return;
+    }
+    await loadFile(file);
+  });
+
+  window.addEventListener("dragover", (event) => {
+    if (hasImageDrag(event)) {
+      event.preventDefault();
+    }
+  });
+  window.addEventListener("drop", (event) => {
+    if (hasImageDrag(event)) {
+      event.preventDefault();
+    }
+    refs.uploadEmptyState.classList.remove("drag-over");
+  });
+}
+
 function preferredLanguage() {
   const saved = window.localStorage.getItem("kw-layer-cutter-language");
   if (saved === "ja" || saved === "en") {
@@ -361,17 +406,34 @@ function getInitialImage() {
 }
 
 async function handleFileChange(event) {
-  const [file] = event.target.files;
+  const file = getFirstImageFile(event.target.files);
   if (!file) {
     return;
   }
+  await loadFile(file);
+  refs.fileInput.value = "";
+}
+
+async function loadFile(file) {
   const url = URL.createObjectURL(file);
   try {
     await loadImage(url, file.name);
   } finally {
     URL.revokeObjectURL(url);
-    refs.fileInput.value = "";
   }
+}
+
+function getFirstImageFile(files) {
+  return [...(files ?? [])].find(isImageFile) ?? null;
+}
+
+function isImageFile(file) {
+  return file?.type?.startsWith("image/") || /\.(avif|bmp|gif|jpe?g|png|svg|webp)$/i.test(file?.name ?? "");
+}
+
+function hasImageDrag(event) {
+  const types = [...(event.dataTransfer?.types ?? [])];
+  return types.includes("Files");
 }
 
 function showEmptyProject() {
