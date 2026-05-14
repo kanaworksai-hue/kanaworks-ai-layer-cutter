@@ -1,0 +1,5 @@
+.DS_Store
+exports/
+*.psd
+assets/image*.png
+node_modules/

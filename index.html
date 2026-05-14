@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PSD Layer Cutter</title>
+    <link rel="stylesheet" href="./src/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <img class="brand-logo" src="./assets/kanaworks-ai-logo.png" alt="KanaWorks AI" />
+          <div>
+            <strong data-i18n="app.name">KanaWorks AI Layer Cutter</strong>
+            <span id="imageMeta" data-i18n="status.waitingUpload">Waiting for upload</span>
+          </div>
+        </div>
+
+        <nav class="toolbar" data-i18n-aria-label="aria.mainTools" aria-label="Main tools">
+          <a class="x-link" href="https://x.com/KanaWorks_AI" target="_blank" rel="noreferrer">
+            <span aria-hidden="true">X</span>
+            <span data-i18n="promo.followX">Follow @KanaWorks_AI</span>
+          </a>
+
+          <div class="segmented-control compact language-control" data-i18n-aria-label="aria.language" aria-label="Language">
+            <label>
+              <input type="radio" name="language" value="en" checked />
+              <span>EN</span>
+            </label>
+            <label>
+              <input type="radio" name="language" value="ja" />
+              <span>JA</span>
+            </label>
+          </div>
+
+          <label class="tool-button" for="fileInput" data-upload-trigger data-i18n-title="action.openImage" title="Open image">
+            <span aria-hidden="true">↥</span>
+            <span data-i18n="step.uploadButton">1 Upload</span>
+          </label>
+          <input id="fileInput" type="file" accept="image/*" />
+
+          <div class="segmented-control compact" data-i18n-aria-label="aria.granularity" aria-label="Granularity">
+            <label>
+              <input type="radio" name="granularity" value="low" />
+              <span data-i18n="granularity.low">Low</span>
+            </label>
+            <label>
+              <input type="radio" name="granularity" value="medium" />
+              <span data-i18n="granularity.medium">Medium</span>
+            </label>
+            <label>
+              <input type="radio" name="granularity" value="high" checked />
+              <span data-i18n="granularity.high">High</span>
+            </label>
+          </div>
+
+          <button id="scanButton" class="tool-button" type="button" data-i18n-title="step.scan" title="Scan plan" disabled>
+            <span aria-hidden="true">⌘</span>
+            <span data-i18n="step.scanButton">2 Scan</span>
+          </button>
+          <button id="adjustButton" class="tool-button" type="button" data-i18n-title="step.adjust" title="Adjust" disabled>
+            <span aria-hidden="true">✣</span>
+            <span data-i18n="step.adjustButton">3 Adjust</span>
+          </button>
+          <button id="previewButton" class="tool-button" type="button" data-i18n-title="step.preview" title="Preview" disabled>
+            <span aria-hidden="true">◐</span>
+            <span data-i18n="step.previewButton">4 Preview</span>
+          </button>
+          <button id="splitButton" class="tool-button" type="button" data-i18n-title="step.split" title="Extract" disabled>
+            <span aria-hidden="true">◇</span>
+            <span data-i18n="step.splitButton">5 Extract</span>
+          </button>
+          <button id="exportButton" class="tool-button primary" type="button" data-i18n-title="step.export" title="Export PSD" disabled>
+            <span aria-hidden="true">↓</span>
+            <span data-i18n="step.exportButton">6 Export PSD</span>
+          </button>
+        </nav>
+      </header>
+
+      <ol id="workflowSteps" class="workflow-strip" data-i18n-aria-label="aria.workflow" aria-label="Workflow">
+        <li data-step="upload"><span>1</span><span data-i18n="step.upload">Upload</span></li>
+        <li data-step="scan"><span>2</span><span data-i18n="step.scan">Scan plan</span></li>
+        <li data-step="adjust"><span>3</span><span data-i18n="step.adjust">Adjust</span></li>
+        <li data-step="preview"><span>4</span><span data-i18n="step.preview">Preview</span></li>
+        <li data-step="split"><span>5</span><span data-i18n="step.split">Extract</span></li>
+        <li data-step="export"><span>6</span><span data-i18n="step.export">Export PSD</span></li>
+      </ol>
+
+      <main class="workspace">
+        <aside class="panel layer-panel" data-i18n-aria-label="aria.layers" aria-label="Layers">
+          <div class="panel-header">
+            <h1 data-i18n="panel.layerPlan">Layer plan</h1>
+            <span id="layerCount">0</span>
+          </div>
+          <div id="layerList" class="layer-list"></div>
+        </aside>
+
+        <section class="stage-shell" data-i18n-aria-label="aria.canvas" aria-label="Canvas">
+          <div class="stage-toolbar">
+            <span id="modeLabel">Upload / Select</span>
+            <span id="statusText" data-i18n="status.uploadStep">Step 1: upload an image</span>
+          </div>
+          <div id="canvasScroller" class="canvas-scroller">
+            <canvas id="stageCanvas"></canvas>
+            <div id="uploadEmptyState" class="upload-empty">
+              <label for="fileInput" data-upload-trigger>
+                <strong data-i18n="upload.emptyTitle">Upload an image to start</strong>
+                <span data-i18n="upload.emptyBody">Supports 16:9, 9:16, 3:2, 2:3, 1:1, and adaptive sizes.</span>
+              </label>
+            </div>
+          </div>
+        </section>
+
+        <aside class="panel inspector-panel" data-i18n-aria-label="aria.properties" aria-label="Properties">
+          <div class="panel-header">
+            <h2 data-i18n="panel.properties">Properties</h2>
+          </div>
+
+          <div class="field">
+            <label for="layerName" data-i18n="field.name">Name</label>
+            <input id="layerName" type="text" disabled />
+          </div>
+
+          <div class="grid-fields">
+            <div class="field">
+              <label for="layerX">X</label>
+              <input id="layerX" type="number" min="0" disabled />
+            </div>
+            <div class="field">
+              <label for="layerY">Y</label>
+              <input id="layerY" type="number" min="0" disabled />
+            </div>
+            <div class="field">
+              <label for="layerW">W</label>
+              <input id="layerW" type="number" min="1" disabled />
+            </div>
+            <div class="field">
+              <label for="layerH">H</label>
+              <input id="layerH" type="number" min="1" disabled />
+            </div>
+          </div>
+
+          <div class="field">
+            <label data-i18n="field.shape">Shape</label>
+            <div class="segmented-control shape-control" data-i18n-aria-label="aria.shape" aria-label="Layer shape">
+              <label>
+                <input type="radio" name="layerShape" value="rect" checked />
+                <span data-i18n="shape.rect">Rect</span>
+              </label>
+              <label>
+                <input type="radio" name="layerShape" value="rounded" />
+                <span data-i18n="shape.rounded">Rounded</span>
+              </label>
+              <label>
+                <input type="radio" name="layerShape" value="circle" />
+                <span data-i18n="shape.circle">Circle</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="layerOpacity" data-i18n="field.opacity">Opacity</label>
+            <input id="layerOpacity" type="range" min="0" max="100" value="100" disabled />
+          </div>
+
+          <label class="check-row">
+            <input id="layerVisible" type="checkbox" disabled />
+            <span data-i18n="field.includeLayer">Extract / export this layer</span>
+          </label>
+
+          <button id="lockSelectedButton" class="wide-button" type="button" disabled data-i18n-title="action.lockSelected" title="Lock selected area">
+            <span aria-hidden="true">□</span>
+            <span data-i18n="action.lockSelected">Lock selected area</span>
+          </button>
+
+          <label class="check-row">
+            <input id="includeReference" type="checkbox" checked />
+            <span data-i18n="field.includeReference">Include hidden original reference layer</span>
+          </label>
+
+          <button id="drawButton" class="wide-button" type="button" disabled data-i18n-title="action.addLayer" title="Add layer">
+            <span aria-hidden="true">□</span>
+            <span data-i18n="action.addLayer">Add manual extraction area</span>
+          </button>
+
+          <div class="button-row">
+            <button id="moveUpButton" type="button" disabled data-i18n-title="action.moveUp" title="Move up">↑</button>
+            <button id="moveDownButton" type="button" disabled data-i18n-title="action.moveDown" title="Move down">↓</button>
+            <button id="deleteButton" type="button" disabled data-i18n-title="action.delete" title="Delete" data-i18n="action.delete">Delete</button>
+          </div>
+        </aside>
+      </main>
+    </div>
+
+    <script>
+      (() => {
+        if (window.location.protocol !== "file:") {
+          return;
+        }
+
+        const target = new URL("http://127.0.0.1:4174/");
+        target.search = window.location.search;
+
+        window.addEventListener("DOMContentLoaded", () => {
+          const warning = document.createElement("div");
+          warning.className = "file-protocol-warning";
+          warning.innerHTML = `
+            <strong>Open this tool from the local server</strong>
+            <span>Opening index.html directly can limit image processing in the browser. Use the local server URL instead.</span>
+            <a href="${target.href}">Open the working version</a>
+          `;
+          document.body.append(warning);
+        });
+      })();
+    </script>
+    <script type="module" src="./src/app.js"></script>
+  </body>
+</html>
