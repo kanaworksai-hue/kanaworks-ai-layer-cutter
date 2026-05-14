@@ -23,8 +23,8 @@ const SHAPE_LABELS = {
 };
 const DEFAULT_LOCALE = "en";
 const DEFAULT_MESSAGES = {
-  "app.name": "KanaWorks AI Layer Cutter",
-  "meta.title": "KanaWorks AI Layer Cutter",
+  "app.name": "Kana Layer Cutter",
+  "meta.title": "Kana Layer Cutter",
   "aria.layers": "Layers",
   "aria.canvas": "Canvas",
   "aria.properties": "Properties",
@@ -34,6 +34,12 @@ const DEFAULT_MESSAGES = {
   "aria.granularity": "Granularity",
   "aria.shape": "Layer shape",
   "promo.followX": "Follow @KanaWorks_AI",
+  "help.title": "How to use",
+  "help.close": "Close",
+  "help.step1": "Upload an image.",
+  "help.step2": "Choose low, medium, or high granularity and scan the layer plan.",
+  "help.step3": "Adjust layer boxes, names, locks, and shapes if needed.",
+  "help.step4": "Preview, extract, then export the layered PSD.",
   "step.upload": "Upload",
   "step.scan": "Scan plan",
   "step.adjust": "Adjust",
@@ -135,6 +141,8 @@ const refs = {
   layerOpacity: document.getElementById("layerOpacity"),
   layerVisible: document.getElementById("layerVisible"),
   lockSelectedButton: document.getElementById("lockSelectedButton"),
+  helpButton: document.getElementById("helpButton"),
+  helpDialog: document.getElementById("helpDialog"),
   includeReference: document.getElementById("includeReference"),
   languageInputs: [...document.querySelectorAll('input[name="language"]')],
   granularityInputs: [...document.querySelectorAll('input[name="granularity"]')],
@@ -206,6 +214,7 @@ function bindEvents() {
     });
   });
   refs.scanButton.addEventListener("click", scanAndPlanLayers);
+  refs.helpButton.addEventListener("click", () => refs.helpDialog.showModal());
   refs.granularityInputs.forEach((input) => {
     input.addEventListener("change", () => {
       if (!input.checked) {

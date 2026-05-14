@@ -43,7 +43,7 @@ button {
 
 .app-shell {
   display: grid;
-  grid-template-rows: 68px 52px minmax(0, 1fr);
+  grid-template-rows: 64px 42px minmax(0, 1fr) 24px;
   width: 100vw;
   height: 100vh;
 }
@@ -52,8 +52,8 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 18px;
-  padding: 0 18px;
+  gap: 14px;
+  padding: 0 14px;
   border-bottom: 1px solid var(--line);
   background: rgba(255, 253, 248, 0.94);
   backdrop-filter: blur(18px);
@@ -63,8 +63,9 @@ button {
 .brand {
   display: flex;
   align-items: center;
-  gap: 12px;
-  min-width: 220px;
+  gap: 10px;
+  min-width: 190px;
+  max-width: 260px;
 }
 
 .brand-logo {
@@ -78,8 +79,9 @@ button {
 
 .brand strong {
   display: block;
-  font-size: 16px;
+  font-size: 15px;
   letter-spacing: 0;
+  white-space: nowrap;
 }
 
 .brand span:last-child {
@@ -93,8 +95,11 @@ button {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 8px;
-  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  white-space: nowrap;
 }
 
 .x-link {
@@ -106,10 +111,28 @@ button {
   border: 1px solid #7fb9dc;
   background: #eef8ff;
   color: #06476f;
-  padding: 0 12px;
+  padding: 0 10px;
   text-decoration: none;
   font-size: 13px;
   font-weight: 780;
+}
+
+.icon-button {
+  display: inline-grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  border: 1px solid var(--line);
+  background: #fffdf8;
+  color: var(--accent-strong);
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.icon-button:hover {
+  border-color: #8fb7a7;
+  background: #eef6f1;
 }
 
 .x-link span:first-child {
@@ -183,7 +206,8 @@ button {
   border: 1px solid var(--line);
   background: #fffdf8;
   color: var(--ink);
-  padding: 0 13px;
+  padding: 0 11px;
+  flex: 0 0 auto;
   cursor: pointer;
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.8) inset;
 }
@@ -297,31 +321,40 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 7px;
   min-width: 0;
   background: #f8f6f0;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   white-space: nowrap;
+  overflow: hidden;
+  padding: 0 8px;
 }
 
-.workflow-strip li span {
+.workflow-strip li > span:first-child {
   display: inline-grid;
   place-items: center;
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
   border: 1px solid var(--line);
   background: #fffdf8;
   color: var(--muted);
   font-size: 12px;
 }
 
+.workflow-strip li > span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .workflow-strip li.done {
   color: var(--accent-strong);
 }
 
-.workflow-strip li.done span {
+.workflow-strip li.done > span:first-child {
   border-color: #8fb7a7;
   background: #dbece4;
   color: var(--accent-strong);
@@ -332,7 +365,7 @@ button {
   color: var(--accent-strong);
 }
 
-.workflow-strip li.current span {
+.workflow-strip li.current > span:first-child {
   border-color: var(--accent);
   background: var(--accent);
   color: #fff;
@@ -342,6 +375,56 @@ button {
   display: grid;
   grid-template-columns: 286px minmax(0, 1fr) 292px;
   min-height: 0;
+}
+
+.app-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-top: 1px solid var(--line);
+  background: #f8f6f0;
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0;
+}
+
+.help-dialog {
+  width: min(420px, calc(100vw - 32px));
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--ink);
+  padding: 0;
+  box-shadow: var(--shadow);
+}
+
+.help-dialog::backdrop {
+  background: rgba(30, 37, 36, 0.28);
+}
+
+.help-dialog form {
+  margin: 0;
+  padding: 18px;
+}
+
+.help-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.help-header h2 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.help-dialog ol {
+  margin: 0;
+  padding-left: 22px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.7;
 }
 
 .panel {
@@ -684,7 +767,7 @@ input[type="range"] {
   .app-shell {
     min-width: 760px;
     min-height: 760px;
-    grid-template-rows: auto auto minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr) 24px;
   }
 
   .workspace {

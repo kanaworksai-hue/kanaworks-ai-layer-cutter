@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>PSD Layer Cutter</title>
+    <title>Kana Layer Cutter</title>
     <link rel="stylesheet" href="./src/styles.css" />
   </head>
   <body>
@@ -12,7 +12,7 @@
         <div class="brand">
           <img class="brand-logo" src="./assets/kanaworks-ai-logo.png" alt="KanaWorks AI" />
           <div>
-            <strong data-i18n="app.name">KanaWorks AI Layer Cutter</strong>
+            <strong data-i18n="app.name">Kana Layer Cutter</strong>
             <span id="imageMeta" data-i18n="status.waitingUpload">Waiting for upload</span>
           </div>
         </div>
@@ -22,6 +22,10 @@
             <span aria-hidden="true">X</span>
             <span data-i18n="promo.followX">Follow @KanaWorks_AI</span>
           </a>
+
+          <button id="helpButton" class="icon-button" type="button" data-i18n-title="help.title" title="Help" data-i18n-aria-label="help.title" aria-label="Help" aria-haspopup="dialog">
+            <span aria-hidden="true">?</span>
+          </button>
 
           <div class="segmented-control compact language-control" data-i18n-aria-label="aria.language" aria-label="Language">
             <label>
@@ -191,7 +195,28 @@
           </div>
         </aside>
       </main>
+
+      <footer class="app-footer">
+        <span>© Tokyo AI Visuals LLC</span>
+      </footer>
     </div>
+
+    <dialog id="helpDialog" class="help-dialog">
+      <form method="dialog">
+        <div class="help-header">
+          <h2 data-i18n="help.title">How to use</h2>
+          <button class="icon-button" type="submit" data-i18n-title="help.close" title="Close" data-i18n-aria-label="help.close" aria-label="Close">
+            <span aria-hidden="true">×</span>
+          </button>
+        </div>
+        <ol>
+          <li data-i18n="help.step1">Upload an image.</li>
+          <li data-i18n="help.step2">Choose low, medium, or high granularity and scan the layer plan.</li>
+          <li data-i18n="help.step3">Adjust layer boxes, names, locks, and shapes if needed.</li>
+          <li data-i18n="help.step4">Preview, extract, then export the layered PSD.</li>
+        </ol>
+      </form>
+    </dialog>
 
     <script>
       (() => {

@@ -1,7 +1,7 @@
 {
   "name": "kanaworks-ai-layer-cutter",
   "version": "1.0.0",
-  "description": "Browser-only image to layered PSD cutter by KanaWorks AI.",
+  "description": "Browser-only image to layered PSD cutter.",
   "type": "module",
   "scripts": {
     "start": "python3 -m http.server 4174"
