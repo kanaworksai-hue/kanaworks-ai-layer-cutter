@@ -64,6 +64,11 @@ const DEFAULT_MESSAGES = {
   "status.imageLoaded": "Uploaded {name}. Next, scan the layer plan.",
   "status.imageFailed": "Image failed to load",
   "status.dropImageOnly": "Drop an image file to upload.",
+  "status.scanPreparing": "Loading OCR and contour tools",
+  "status.scanOcr": "Reading text layout with OCR",
+  "status.scanContours": "Finding image and icon blocks",
+  "status.scanFallback": "Hybrid scan unavailable. Using local visual scan.",
+  "status.scanFailed": "Layer scan failed",
   "status.chooseGranularity": "{granularity} selected. Scan again to rebuild the plan.",
   "status.uploadFirst": "Upload an image first",
   "status.scanning": "Scanning with {granularity} granularity",
@@ -173,6 +178,7 @@ const state = {
   previewReady: false,
   splitReady: false,
   splitPayload: null,
+  scanning: false,
 };
 
 let nextLayerId = 1;
@@ -487,12 +493,12 @@ function loadImage(src, name) {
   });
 }
 
-function resetAutoLayers() {
+async function resetAutoLayers(onProgress) {
   if (!state.loaded) {
     return 0;
   }
   nextLayerId = 1;
-  state.layers = createAutoLayers(sourceCanvas.width, sourceCanvas.height);
+  state.layers = await createAutoLayers(sourceCanvas.width, sourceCanvas.height, onProgress);
   state.selectedId = state.layers[0]?.id ?? null;
   state.mode = "select";
   state.workflowStep = "adjust";
@@ -501,17 +507,41 @@ function resetAutoLayers() {
   return state.layers.length;
 }
 
-function scanAndPlanLayers() {
+async function scanAndPlanLayers() {
+  if (state.scanning) {
+    return;
+  }
   if (!state.loaded) {
     setStatus(t("status.uploadFirst"));
     return;
   }
   const label = granularityLabel(state.granularity);
+  state.scanning = true;
+  state.workflowStep = "scan";
   setStatus(t("status.scanning", { granularity: label }));
-  window.requestAnimationFrame(() => {
-    const count = resetAutoLayers();
+  updateWorkflowUi();
+
+  try {
+    await new Promise((resolve) => window.requestAnimationFrame(resolve));
+    const count = await resetAutoLayers((stage) => {
+      const statusKey = {
+        contours: "status.scanContours",
+        fallback: "status.scanFallback",
+        ocr: "status.scanOcr",
+        prepare: "status.scanPreparing",
+      }[stage];
+      if (statusKey) {
+        setStatus(t(statusKey));
+      }
+    });
     setStatus(t("status.scanDone", { count, granularity: label }));
-  });
+  } catch (error) {
+    console.error(error);
+    setStatus(t("status.scanFailed"));
+  } finally {
+    state.scanning = false;
+    updateAll();
+  }
 }
 
 function enterAdjustStep() {
@@ -580,8 +610,8 @@ async function splitCurrentPlan() {
   updateAll();
 }
 
-function createAutoLayers(width, height) {
-  const detected = detectGenericLayers(sourceCanvas, { granularity: state.granularity });
+async function createAutoLayers(width, height, onProgress) {
+  const detected = await detectGenericLayers(sourceCanvas, { granularity: state.granularity, language: state.language, onProgress });
   return detected.map((layer) => createLayer(layer.name, clampRect(layer.rect, width, height), layer.holes ?? []));
 }
 
@@ -1205,12 +1235,12 @@ function updateWorkflowUi() {
     item.classList.toggle("done", index < currentIndex || (item.dataset.step === "split" && state.splitReady));
   });
 
-  refs.scanButton.disabled = !state.loaded;
-  refs.adjustButton.disabled = !state.loaded || state.layers.length === 0;
-  refs.previewButton.disabled = !state.loaded || state.layers.length === 0;
-  refs.splitButton.disabled = !state.loaded || state.layers.length === 0 || !state.previewReady;
-  refs.exportButton.disabled = !state.splitReady;
-  refs.drawButton.disabled = !state.loaded || state.workflowStep !== "adjust";
+  refs.scanButton.disabled = !state.loaded || state.scanning;
+  refs.adjustButton.disabled = state.scanning || !state.loaded || state.layers.length === 0;
+  refs.previewButton.disabled = state.scanning || !state.loaded || state.layers.length === 0;
+  refs.splitButton.disabled = state.scanning || !state.loaded || state.layers.length === 0 || !state.previewReady;
+  refs.exportButton.disabled = state.scanning || !state.splitReady;
+  refs.drawButton.disabled = state.scanning || !state.loaded || state.workflowStep !== "adjust";
 }
 
 function invalidateSplit(updateStatus = true) {
